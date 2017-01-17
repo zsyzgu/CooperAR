@@ -1,14 +1,13 @@
 ﻿using UnityEngine;
+using UnityEngine.UI;
 
 public class Student : MonoBehaviour {
+    public GameObject face;
     private int id;
-
-	void Start () {
-		
-	}
 	
 	void Update () {
         dealTransform();
+        dealImage();
 	}
 
     public void setID(int id) {
@@ -21,6 +20,14 @@ public class Student : MonoBehaviour {
         if (Tracking.getTransform(id, out pos, out rot)) {
             transform.position = pos;
             transform.eulerAngles = rot;
+        }
+    }
+
+    private void dealImage() {
+        Texture2D texture;
+        if (Capturing.getFrame(id, out texture)) {
+            Destroy(face.GetComponent<RawImage>().texture);
+            face.GetComponent<RawImage>().texture = texture;
         }
     }
 }

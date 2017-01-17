@@ -91,7 +91,8 @@ public class Tracking : MonoBehaviour {
         await socket.ConnectAsync(new HostName(SERVER_IP), "" + PORT);
         Stream stream = socket.InputStream.AsStreamForRead();
         StreamReader reader = new StreamReader(stream);
-
+        
+        //TODO: reader timeout
         while (mainTask != null) {
             string msg = await reader.ReadLineAsync();
             if (!recvMessage(msg)) {
