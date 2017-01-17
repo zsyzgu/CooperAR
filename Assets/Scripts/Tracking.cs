@@ -2,7 +2,10 @@
 using System.IO;
 
 #if WINDOWS_UWP
-
+using System;
+using System.Threading.Tasks;
+using Windows.Networking;
+using Windows.Networking.Sockets;
 #else
 using System.Threading;
 using System.Net.Sockets;
@@ -11,7 +14,7 @@ using System.Net.Sockets;
 public class Tracking : MonoBehaviour {
     static Tracking tracking = null;
 
-    const string SERVER_IP = "127.0.0.1";
+    const string SERVER_IP = "192.168.1.129";
     const int MAX_STUDENTS = 10;
     const int PORT = 8520;
 
@@ -69,7 +72,33 @@ public class Tracking : MonoBehaviour {
     }
 
 #if WINDOWS_UWP
+    private Task mainTask;
 
+    void Awake() {
+        if (tracking == null) {
+            tracking = this;
+        }
+        mainTask = new Task(clientThread);
+        mainTask.Start();
+    }
+
+    void OnApplicationQuit() {
+        mainTask = null;
+    }
+
+    private async void clientThread() {
+        StreamSocket socket = new StreamSocket();
+        await socket.ConnectAsync(new HostName(SERVER_IP), "" + PORT);
+        Stream stream = socket.InputStream.AsStreamForRead();
+        StreamReader reader = new StreamReader(stream);
+
+        while (mainTask != null) {
+            string msg = await reader.ReadLineAsync();
+            if (!recvMessage(msg)) {
+                break;
+            }
+        }
+    }
 #else
     private Thread mainThread;
 
@@ -90,6 +119,7 @@ public class Tracking : MonoBehaviour {
         client.Connect(SERVER_IP, PORT);
 
         NetworkStream networkStream = client.GetStream();
+        client.ReceiveTimeout = 5000;
         StreamReader sr = new StreamReader(networkStream);
 
         while (mainThread != null) {
@@ -98,7 +128,7 @@ public class Tracking : MonoBehaviour {
                 break;
             }
         }
-
+        
         client.Close();
     }
 #endif
