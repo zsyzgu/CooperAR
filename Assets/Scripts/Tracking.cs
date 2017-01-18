@@ -12,8 +12,6 @@ using System.Net.Sockets;
 #endif
 
 public class Tracking : MonoBehaviour {
-    static Tracking tracking = null;
-
     const string SERVER_IP = "192.168.1.129";
     const int MAX_STUDENTS = 10;
     const int PORT = 8520;
@@ -30,13 +28,13 @@ public class Tracking : MonoBehaviour {
         }
     }
 
-    private TrackingFrame currFrame = new TrackingFrame();
-    private TrackingFrame frame;
+    static TrackingFrame currFrame = new TrackingFrame();
+    static TrackingFrame frame;
 
     static public bool getTransform(int id, out Vector3 position, out Vector3 rotation) {
-        if (0 <= id && id < MAX_STUDENTS && tracking.currFrame.exist[id]) {
-            position = tracking.currFrame.pos[id];
-            rotation = tracking.currFrame.rot[id];
+        if (0 <= id && id < MAX_STUDENTS && currFrame.exist[id]) {
+            position = currFrame.pos[id];
+            rotation = currFrame.rot[id];
             return true;
         } else {
             position = Vector3.zero;
@@ -75,9 +73,6 @@ public class Tracking : MonoBehaviour {
     private Task mainTask;
 
     void Awake() {
-        if (tracking == null) {
-            tracking = this;
-        }
         mainTask = new Task(clientThread);
         mainTask.Start();
     }
@@ -104,9 +99,6 @@ public class Tracking : MonoBehaviour {
     private Thread mainThread;
 
     void Awake() {
-        if (tracking == null) {
-            tracking = this;
-        }
         mainThread = new Thread(clientThread);
         mainThread.Start();
     }
@@ -118,10 +110,9 @@ public class Tracking : MonoBehaviour {
     private void clientThread() {
         TcpClient client = new TcpClient();
         client.Connect(SERVER_IP, PORT);
-
-        NetworkStream networkStream = client.GetStream();
-        client.ReceiveTimeout = 5000;
-        StreamReader sr = new StreamReader(networkStream);
+        
+        StreamReader sr = new StreamReader(client.GetStream());
+        client.ReceiveTimeout = 1000;
 
         while (mainThread != null) {
             string msg = sr.ReadLine();

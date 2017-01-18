@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System;
 using System.IO;
+using System.Text;
 
 #if WINDOWS_UWP
 
@@ -11,17 +12,16 @@ using System.Net.Sockets;
 #endif
 
 public class Capturing : MonoBehaviour {
-    static Capturing capturing = null;
     const int PORT = 8888;
-    const int BUFFER_LEN = 50000;
+    const int BUFFER_LEN = 100000;
 
-    private byte[] buffer;
-    private byte[][] images;
+    static byte[] buffer;
+    static byte[][] images;
 
     static public bool getFrame(int id, out Texture2D texture) {
-        if (capturing.images[id] != null) {
+        if (images[id] != null) {
             texture = new Texture2D(640, 480, TextureFormat.RGB24, false, false);
-            texture.LoadImage(capturing.images[id]);
+            texture.LoadImage(images[id]);
             return true;
         } else {
             texture = null;
@@ -30,12 +30,11 @@ public class Capturing : MonoBehaviour {
     }
 
     void Awake() {
-        if (capturing == null) {
-            capturing = this;
-        }
-
         buffer = new byte[BUFFER_LEN];
         images = new byte[10][];
+        for (int i = 0; i < 10; i++) {
+            images[i] = null;
+        }
 
         startServer();
     }
@@ -74,18 +73,24 @@ public class Capturing : MonoBehaviour {
     }
 
     private void msgThread(TcpClient client) {
-        NetworkStream networkStream = client.GetStream();
-        client.ReceiveTimeout = 5000;
+        Stream sr = new StreamReader(client.GetStream()).BaseStream;
+        Stream sw = new StreamWriter(client.GetStream()).BaseStream;
 
         while (mainThread != null) {
-            int len = networkStream.Read(buffer, 0, buffer.Length);
-            if (len == 0) {
+            try {
+                int len = sr.Read(buffer, 0, buffer.Length);
+                if (len == 0) {
+                    break;
+                }
+                images[0] = new byte[len];
+                Array.Copy(buffer, images[0], len);
+                sw.WriteByte(0);
+                sw.Flush();
+            } catch {
                 break;
             }
-            images[0] = new byte[len];
-            Array.Copy(buffer, images[0], len);
         }
-
+        
         client.Close();
     }
 #endif
