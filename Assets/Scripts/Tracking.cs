@@ -12,7 +12,7 @@ using System.Net.Sockets;
 #endif
 
 public class Tracking : MonoBehaviour {
-    const string SERVER_IP = "192.168.1.129";
+    const string SERVER_IP = "192.168.1.135";
     const int MAX_STUDENTS = 10;
     const int PORT = 8520;
 
@@ -85,11 +85,10 @@ public class Tracking : MonoBehaviour {
         StreamSocket socket = new StreamSocket();
         await socket.ConnectAsync(new HostName(SERVER_IP), "" + PORT);
         Stream stream = socket.InputStream.AsStreamForRead();
-        StreamReader reader = new StreamReader(stream);
+        StreamReader sr = new StreamReader(stream);
         
-        //TODO: reader timeout
         while (mainTask != null) {
-            string msg = await reader.ReadLineAsync();
+            string msg = await sr.ReadLineAsync();
             if (!recvMessage(msg)) {
                 break;
             }
@@ -112,7 +111,6 @@ public class Tracking : MonoBehaviour {
         client.Connect(SERVER_IP, PORT);
         
         StreamReader sr = new StreamReader(client.GetStream());
-        client.ReceiveTimeout = 1000;
 
         while (mainThread != null) {
             string msg = sr.ReadLine();

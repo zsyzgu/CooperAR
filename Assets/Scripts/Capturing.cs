@@ -4,7 +4,10 @@ using System.IO;
 using System.Text;
 
 #if WINDOWS_UWP
-
+using System.Threading.Tasks;
+using Windows.Networking;
+using Windows.Networking.Sockets;
+using Windows.Networking.Connectivity;
 #else
 using System.Threading;
 using System.Net;
@@ -44,6 +47,67 @@ public class Capturing : MonoBehaviour {
     }
 
 #if WINDOWS_UWP
+    private Task mainTask;
+
+    private void startServer() {
+        mainTask = new Task(serverThread);
+        mainTask.Start();
+    }
+
+    private void endServer() {
+        mainTask = null;
+    }
+
+    private string getIP() {
+        foreach (HostName localHostName in NetworkInformation.GetHostNames()) {
+            if (localHostName.IPInformation != null) {
+                if (localHostName.Type == HostNameType.Ipv4) {
+                    return localHostName.ToString();
+                }
+            }
+        }
+        return "127.0.0.1";
+    }
+
+    private async void serverThread() {
+        StreamSocketListener listener = new StreamSocketListener();
+        listener.ConnectionReceived += connectionReceived;
+        HostName hostName = new HostName(getIP());
+        await listener.BindEndpointAsync(hostName, "" + PORT);
+    }
+
+    private void connectionReceived(StreamSocketListener listener, StreamSocketListenerConnectionReceivedEventArgs args) {
+        Stream sr = args.Socket.InputStream.AsStreamForRead();
+        Stream sw = args.Socket.OutputStream.AsStreamForWrite();
+
+        while (mainTask != null) {
+            try {
+                byte[] info = new byte[4];
+                sr.Read(info, 0, 4);
+                int id = info[0];
+                int len = (info[1] << 16) | (info[2] << 8) | info[3];
+                int offset = 0;
+                int left = len;
+                while (mainTask != null && left > 0) {
+                    int ret = sr.Read(buffer, offset, left);
+                    if (ret > 0) {
+                        left -= ret;
+                        offset += ret;
+                    } else if (ret == 0) {
+                        Debug.Log("socket closed");
+                    } else {
+                        Debug.Log("socket error");
+                    }
+                }
+                images[id] = new byte[len];
+                Array.Copy(buffer, images[id], len);
+                sw.WriteByte(0);
+                sw.Flush();
+            } catch {
+                break;
+            }
+        }
+    }
 
 #else
     private Thread mainThread;
@@ -78,12 +142,25 @@ public class Capturing : MonoBehaviour {
 
         while (mainThread != null) {
             try {
-                int len = sr.Read(buffer, 0, buffer.Length);
-                if (len == 0) {
-                    break;
+                byte[] info = new byte[4];
+                sr.Read(info, 0, 4);
+                int id = info[0];
+                int len = (info[1] << 16) | (info[2] << 8) | info[3];
+                int offset = 0;
+                int left = len;
+                while (mainThread != null && left > 0) {
+                    int ret = sr.Read(buffer, offset, left);
+                    if (ret > 0) {
+                        left -= ret;
+                        offset += ret;
+                    } else if (ret == 0) {
+                        Debug.Log("socket closed");
+                    } else {
+                        Debug.Log("socket error");
+                    }
                 }
-                images[0] = new byte[len];
-                Array.Copy(buffer, images[0], len);
+                images[id] = new byte[len];
+                Array.Copy(buffer, images[id], len);
                 sw.WriteByte(0);
                 sw.Flush();
             } catch {
