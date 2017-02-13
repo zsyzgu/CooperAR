@@ -10,11 +10,11 @@ using Windows.Networking.Sockets;
 using Windows.Networking.Connectivity;
 #else
 using System.Threading;
-using System.Net;
 using System.Net.Sockets;
 #endif
 
 public class Capturing : MonoBehaviour {
+    const string SERVER_IP = "192.168.1.129";
     const int PORT = 8888;
     const int BUFFER_LEN = 100000;
 
@@ -113,8 +113,7 @@ public class Capturing : MonoBehaviour {
     private Thread mainThread;
 
     private void startServer() {
-        string ipAddress = Network.player.ipAddress;
-        mainThread = new Thread(() => serverThread(ipAddress));
+        mainThread = new Thread(clientThread);
         mainThread.Start();
     }
 
@@ -122,21 +121,10 @@ public class Capturing : MonoBehaviour {
         mainThread = null;
     }
 
-    private void serverThread(string ipAddress) {
-        TcpListener listener = new TcpListener(IPAddress.Parse(ipAddress), PORT);
-        listener.Start();
-        while (mainThread != null) {
-            if (listener.Pending()) {
-                TcpClient client = listener.AcceptTcpClient();
-                Thread thread = new Thread(() => msgThread(client));
-                thread.Start();
-            }
-            Thread.Sleep(10);
-        }
-        listener.Stop();
-    }
+    private void clientThread() {
+        TcpClient client = new TcpClient();
+        client.Connect(SERVER_IP, PORT);
 
-    private void msgThread(TcpClient client) {
         Stream sr = new StreamReader(client.GetStream()).BaseStream;
         Stream sw = new StreamWriter(client.GetStream()).BaseStream;
 
@@ -153,21 +141,18 @@ public class Capturing : MonoBehaviour {
                     if (ret > 0) {
                         left -= ret;
                         offset += ret;
-                    } else if (ret == 0) {
-                        Debug.Log("socket closed");
-                    } else {
-                        Debug.Log("socket error");
                     }
                 }
                 images[id] = new byte[len];
                 Array.Copy(buffer, images[id], len);
                 sw.WriteByte(0);
                 sw.Flush();
-            } catch {
+            }
+            catch {
                 break;
             }
         }
-        
+
         client.Close();
     }
 #endif

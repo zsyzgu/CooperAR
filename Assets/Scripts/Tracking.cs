@@ -12,8 +12,7 @@ using System.Net.Sockets;
 #endif
 
 public class Tracking : MonoBehaviour {
-    const string SERVER_IP = "192.168.1.135";
-    const int MAX_STUDENTS = 10;
+    const string SERVER_IP = "192.168.1.129";
     const int PORT = 8520;
 
     public class TrackingFrame {
@@ -22,9 +21,9 @@ public class Tracking : MonoBehaviour {
         public Vector3[] rot;
 
         public TrackingFrame() {
-            exist = new bool[MAX_STUDENTS];
-            pos = new Vector3[MAX_STUDENTS];
-            rot = new Vector3[MAX_STUDENTS];
+            exist = new bool[10];
+            pos = new Vector3[10];
+            rot = new Vector3[10];
         }
     }
 
@@ -32,7 +31,7 @@ public class Tracking : MonoBehaviour {
     static TrackingFrame frame;
 
     static public bool getTransform(int id, out Vector3 position, out Vector3 rotation) {
-        if (0 <= id && id < MAX_STUDENTS && currFrame.exist[id]) {
+        if (0 <= id && id < 10 && currFrame.exist[id]) {
             position = currFrame.pos[id];
             rotation = currFrame.rot[id];
             return true;
