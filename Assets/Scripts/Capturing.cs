@@ -50,7 +50,7 @@ public class Capturing : MonoBehaviour {
     private Task mainTask;
 
     private void startServer() {
-        mainTask = new Task(serverThread);
+        mainTask = new Task(clientThread);
         mainTask.Start();
     }
 
@@ -58,7 +58,38 @@ public class Capturing : MonoBehaviour {
         mainTask = null;
     }
 
-    private string getIP() {
+    private async void clientThread() {
+        StreamSocket socket = new StreamSocket();
+        await socket.ConnectAsync(new HostName(SERVER_IP), "" + PORT);
+        Stream sr = socket.InputStream.AsStreamForRead();
+        Stream sw = socket.OutputStream.AsStreamForWrite();
+
+        while (mainTask != null) {
+            try {
+                byte[] info = new byte[4];
+                sr.Read(info, 0, 4);
+                int id = info[0];
+                int len = (info[1] << 16) | (info[2] << 8) | info[3];
+                int offset = 0;
+                int left = len;
+                while (mainTask != null && left > 0) {
+                    int ret = sr.Read(buffer, offset, left);
+                    if (ret > 0) {
+                        left -= ret;
+                        offset += ret;
+                    }
+                }
+                images[id] = new byte[len];
+                Array.Copy(buffer, images[id], len);
+                sw.WriteByte(0);
+                sw.Flush();
+            } catch {
+                break;
+            }
+        }
+    }
+
+    /*private string getIP() {
         foreach (HostName localHostName in NetworkInformation.GetHostNames()) {
             if (localHostName.IPInformation != null) {
                 if (localHostName.Type == HostNameType.Ipv4) {
@@ -107,7 +138,7 @@ public class Capturing : MonoBehaviour {
                 break;
             }
         }
-    }
+    }*/
 
 #else
     private Thread mainThread;
