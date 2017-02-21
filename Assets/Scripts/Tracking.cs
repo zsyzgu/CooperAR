@@ -12,7 +12,8 @@ using System.Net.Sockets;
 #endif
 
 public class Tracking : MonoBehaviour {
-    const string SERVER_IP = "192.168.1.129";
+    const string SERVER_IP = "192.168.1.167";
+    //const string SERVER_IP = "192.168.1.129";
     const int PORT = 8520;
 
     public class TrackingFrame {
@@ -110,7 +111,7 @@ public class Tracking : MonoBehaviour {
         client.Connect(SERVER_IP, PORT);
         
         StreamReader sr = new StreamReader(client.GetStream());
-
+        
         while (mainThread != null) {
             string msg = sr.ReadLine();
             if (!recvMessage(msg)) {

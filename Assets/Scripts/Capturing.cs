@@ -89,57 +89,6 @@ public class Capturing : MonoBehaviour {
         }
     }
 
-    /*private string getIP() {
-        foreach (HostName localHostName in NetworkInformation.GetHostNames()) {
-            if (localHostName.IPInformation != null) {
-                if (localHostName.Type == HostNameType.Ipv4) {
-                    return localHostName.ToString();
-                }
-            }
-        }
-        return "127.0.0.1";
-    }
-
-    private async void serverThread() {
-        StreamSocketListener listener = new StreamSocketListener();
-        listener.ConnectionReceived += connectionReceived;
-        HostName hostName = new HostName(getIP());
-        await listener.BindEndpointAsync(hostName, "" + PORT);
-    }
-
-    private void connectionReceived(StreamSocketListener listener, StreamSocketListenerConnectionReceivedEventArgs args) {
-        Stream sr = args.Socket.InputStream.AsStreamForRead();
-        Stream sw = args.Socket.OutputStream.AsStreamForWrite();
-
-        while (mainTask != null) {
-            try {
-                byte[] info = new byte[4];
-                sr.Read(info, 0, 4);
-                int id = info[0];
-                int len = (info[1] << 16) | (info[2] << 8) | info[3];
-                int offset = 0;
-                int left = len;
-                while (mainTask != null && left > 0) {
-                    int ret = sr.Read(buffer, offset, left);
-                    if (ret > 0) {
-                        left -= ret;
-                        offset += ret;
-                    } else if (ret == 0) {
-                        Debug.Log("socket closed");
-                    } else {
-                        Debug.Log("socket error");
-                    }
-                }
-                images[id] = new byte[len];
-                Array.Copy(buffer, images[id], len);
-                sw.WriteByte(0);
-                sw.Flush();
-            } catch {
-                break;
-            }
-        }
-    }*/
-
 #else
     private Thread mainThread;
 
@@ -158,7 +107,7 @@ public class Capturing : MonoBehaviour {
 
         Stream sr = new StreamReader(client.GetStream()).BaseStream;
         Stream sw = new StreamWriter(client.GetStream()).BaseStream;
-
+        
         while (mainThread != null) {
             try {
                 byte[] info = new byte[4];
