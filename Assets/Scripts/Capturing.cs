@@ -20,10 +20,12 @@ public class Capturing : MonoBehaviour {
 
     static byte[] buffer;
     static byte[][] images;
+    static int[] imageH;
+    static int[] imageW;
 
     static public bool getFrame(int id, out Texture2D texture) {
         if (images[id] != null) {
-            texture = new Texture2D(640, 480, TextureFormat.RGB24, false, false);
+            texture = new Texture2D(imageW[id], imageH[id], TextureFormat.RGB24, false, false);
             texture.LoadImage(images[id]);
             return true;
         } else {
@@ -35,8 +37,12 @@ public class Capturing : MonoBehaviour {
     void Awake() {
         buffer = new byte[BUFFER_LEN];
         images = new byte[10][];
+        imageH = new int[10];
+        imageW = new int[10];
         for (int i = 0; i < 10; i++) {
             images[i] = null;
+            imageH[i] = 0;
+            imageW[i] = 0;
         }
 
         startServer();
@@ -64,15 +70,17 @@ public class Capturing : MonoBehaviour {
         Stream sr = socket.InputStream.AsStreamForRead();
         Stream sw = socket.OutputStream.AsStreamForWrite();
 
-        while (mainTask != null) {
+        while (mainThread != null) {
             try {
-                byte[] info = new byte[4];
-                sr.Read(info, 0, 4);
+                byte[] info = new byte[8];
+                sr.Read(info, 0, 8);
                 int id = info[0];
                 int len = (info[1] << 16) | (info[2] << 8) | info[3];
+                int H = (info[4] << 8) | info[5];
+                int W = (info[6] << 8) | info[7];
                 int offset = 0;
                 int left = len;
-                while (mainTask != null && left > 0) {
+                while (mainThread != null && left > 0) {
                     int ret = sr.Read(buffer, offset, left);
                     if (ret > 0) {
                         left -= ret;
@@ -81,9 +89,12 @@ public class Capturing : MonoBehaviour {
                 }
                 images[id] = new byte[len];
                 Array.Copy(buffer, images[id], len);
+                imageH[id] = H;
+                imageW[id] = W;
                 sw.WriteByte(0);
                 sw.Flush();
-            } catch {
+            }
+            catch {
                 break;
             }
         }
@@ -110,10 +121,12 @@ public class Capturing : MonoBehaviour {
         
         while (mainThread != null) {
             try {
-                byte[] info = new byte[4];
-                sr.Read(info, 0, 4);
+                byte[] info = new byte[8];
+                sr.Read(info, 0, 8);
                 int id = info[0];
                 int len = (info[1] << 16) | (info[2] << 8) | info[3];
+                int H = (info[4] << 8) | info[5];
+                int W = (info[6] << 8) | info[7];
                 int offset = 0;
                 int left = len;
                 while (mainThread != null && left > 0) {
@@ -125,6 +138,8 @@ public class Capturing : MonoBehaviour {
                 }
                 images[id] = new byte[len];
                 Array.Copy(buffer, images[id], len);
+                imageH[id] = H;
+                imageW[id] = W;
                 sw.WriteByte(0);
                 sw.Flush();
             }

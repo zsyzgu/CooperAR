@@ -12,8 +12,8 @@ using System.Net.Sockets;
 #endif
 
 public class Tracking : MonoBehaviour {
-    const string SERVER_IP = "192.168.1.167";
-    //const string SERVER_IP = "192.168.1.129";
+    //const string SERVER_IP = "192.168.1.167";
+    const string SERVER_IP = "192.168.1.129";
     const int PORT = 8520;
 
     public class TrackingFrame {
